@@ -36,7 +36,8 @@ void setup()
 #ifdef DEBUG
   Serial.begin(19200);
 #endif
-  // Serial1 es el GPS
+
+  // Serial1 es el GPS  
   Serial1.begin(9600);
 
   // Se configuran los pines que se comunican con el GPS
@@ -92,6 +93,9 @@ void ajustToLocalTime(byte day , byte hour, byte month, int year){
         year = year - 1;
       }
     }
+    else{
+      day = dayTemp;
+    }
   }
   else{
     hour = temp_hour;
@@ -114,7 +118,7 @@ void readLocation(){
     while (Serial1.available())
     {
       int c = Serial1.read();
-      //Serial.print((char)c);Descomentar para ver los datos que vienen desde las tramas del GPS 
+      //Serial.print((char)c); //Descomentar para ver los datos que vienen desde las tramas del GPS 
       ++chars;
       if (gps.encode(c)) // Si viene algun dato desde el GPS
         newData = true;
@@ -138,7 +142,7 @@ void readLocation(){
     int year;
     byte month, day, hour, minute, second, hundredths;
     gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);// Fecha y hora
-    // Ajuste
+    // Ajuste = byte day , byte hour, byte month, int year
     ajustToLocalTime(day, hour, month, year);
     month=temp.month;
     day=temp.day;
@@ -151,7 +155,7 @@ void readLocation(){
     latitude == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : latitude;
     longitude == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : longitude;
     //
-    // Los siguientes if verifican la validez de la informacion recibida por el GPS
+    // Los siguientes if verifican la validez de la informacion recibida por el GPS (A para valido, V para invalido)
     if (age == TinyGPS::GPS_INVALID_AGE)
       Serial.println("No fix detected");
     else if (age > 5000)
@@ -165,6 +169,16 @@ void readLocation(){
       Serial.println("");
       Serial.print(sz);
       Serial.println("");
+      //INSTRUCCIONES
+      // El controlador envia un prompt para que verifique la conexion.
+      // prompt:
+      // <Siemens
+      // <
+      // <
+      // Luego de eso se envian los comandos, por el puerto serial.
+      // PME=249/CR
+      // TOD=DDMMAA/CR
+      // TOD=HH:MM:SS/CR
     }
   }
 
