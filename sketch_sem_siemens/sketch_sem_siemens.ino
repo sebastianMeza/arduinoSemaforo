@@ -7,6 +7,9 @@ TinyGPS gps;
 #define GPS_RX_DIGITAL_OUT_PIN 6
 // El ajuste al reloj mundial deacuerdo a Chile
 #define UTC_OFFSET -4 
+// Variables 
+#define BAUDARDUINO 9600
+#define BAUDSERIAL 19200
 ///////////////////////////////////////////////////////////////////////////////////////
 // Estructura de datos que almacena los ajustes al reloj mundial, deacuerdo a Chile
 struct dateAjust
@@ -34,11 +37,11 @@ void setup()
 {
   // Aqui se define la salida hacia el puerto serial
 #ifdef DEBUG
-  Serial.begin(19200);
+  Serial.begin(BAUDSERIAL);
 #endif
 
   // Serial1 es el GPS  
-  Serial1.begin(9600);
+  Serial1.begin(BAUDARDUINO);
 
   // Se configuran los pines que se comunican con el GPS
   pinMode(GPS_TX_DIGITAL_OUT_PIN, INPUT);
@@ -51,6 +54,7 @@ void setup()
 void loop()
 {
   readLocation();
+  delay(5000);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,27 +110,89 @@ void ajustToLocalTime(byte day , byte hour, byte month, int year){
   temp.hour = hour;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
+/// Funcion que se encarga de formatear los valores numericos de HH:MM:SS
+/// 
+String formatNumber(int num){
+  String formato;
+  if(num>=0 && num<=9){
+    formato = "0"+(String)num;
+  }
+  else{
+    formato = (String)num;
+  }
+  return formato;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////
+/// Funcion que se encarga de formatear los meses
+/// 
+String formatMonth(int num){
+  String mes;
+  switch (num) {
+      case 1:
+        mes = "ENE";
+        break;
+      case 2:
+        mes = "FEB";
+        break;
+      case 3:
+        mes = "MAR";
+        break;
+      case 4:
+        mes = "APR";
+        break;
+      case 5:
+        mes = "MAY";
+        break;
+      case 6:
+        mes = "JUN";
+        break;
+      case 7:
+        mes = "JUL";
+        break;
+      case 8:
+        mes = "AGO";
+        break;
+      case 9:
+        mes = "SEP";
+        break;
+      case 10:
+        mes = "OCT";
+        break;
+      case 11:
+        mes = "NOV";
+        break;
+      case 12:
+        mes = "DEC";
+        break;
+  }
+  return mes;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////
 /// Funcion que se encarga de obtener y parsear la informacion obtenida desde el GPS y llamar
 /// los ajustes necesarios
 void readLocation(){
-  bool newData = false;
+  bool newData = false, conectado = false,  tramaValida = false;
   unsigned long chars = 0;
   unsigned short sentences, failed;
   // Se hace un total de 1000 lecturas desde el GPS
-  for (unsigned long start = millis(); millis() - start < 1000;)
+  // comentar el ciclo for y 
+  while(!conectado)
   {
     while (Serial1.available())
     {
       int c = Serial1.read();
       //Serial.print((char)c); //Descomentar para ver los datos que vienen desde las tramas del GPS 
       ++chars;
-      if (gps.encode(c)) // Si viene algun dato desde el GPS
+      if (gps.encode(c)){ // Si viene algun dato desde el GPS
         newData = true;
+        conectado = true;
+      }
     }
   }
-
+  
   if (newData)
   {
+    /*
     // Se contabiliza cuando demora en hacer la contexin
     if(secondsToFirstLocation == 0){
       secondsToFirstLocation = (millis() - startMillis) / 1000;
@@ -134,7 +200,7 @@ void readLocation(){
       Serial.print(secondsToFirstLocation);
       Serial.println("s");
     }
-    
+    */
     //// Obtencion de los datos del GPS
     unsigned long age;
     gps.f_get_position(&latitude, &longitude, &age); // Posicion
@@ -156,11 +222,11 @@ void readLocation(){
     longitude == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : longitude;
     //
     // Los siguientes if verifican la validez de la informacion recibida por el GPS (A para valido, V para invalido)
-    if (age == TinyGPS::GPS_INVALID_AGE)
-      Serial.println("No fix detected");
-    else if (age > 5000)
-      Serial.println("Warning: possible stale data!");
+    if (age == TinyGPS::GPS_INVALID_AGE || age > 5000)
+      Serial.println("No fix detected OR Warning: possible stale data!");
     else{
+      tramaValida = true;
+      /*
       Serial.println("Data is current.");
       Serial.print("Location: ");
       Serial.print(latitude, 6);
@@ -168,7 +234,7 @@ void readLocation(){
       Serial.print(longitude, 6);
       Serial.println("");
       Serial.print(sz);
-      Serial.println("");
+      Serial.println("");*/
       //INSTRUCCIONES
       // El controlador envia un prompt para que verifique la conexion.
       // prompt:
@@ -179,6 +245,18 @@ void readLocation(){
       // PME=249/CR
       // TOD=DDMMAA/CR
       // TOD=HH:MM:SS/CR
+      
+      String dd = formatNumber((int)day);
+      String hh = formatNumber((int)hour);
+      String mm = formatNumber((int)minute);
+      String ss = formatNumber((int)second);
+      String mes = formatMonth((int)month);
+      
+      String hora = hh+":"+mm+":"+ss;
+      String dia = dd+mes+(String)year;
+      Serial.print("PME=249/CR");
+      Serial.print("TOD="+hora+"/CR");
+      Serial.print("TOD="+dia+"/CR");
     }
   }
 
