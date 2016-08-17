@@ -1,7 +1,8 @@
 #include "TinyGPS.h"
+#include <SoftwareSerial.h>
 ///////////////////////////////////////////////////////////////////////////////////////
 TinyGPS gps;
-
+SoftwareSerial rs232(2, 3); // RX, TX
 //Variables de configuracion para el arduino mega y el gps shield
 #define GPS_TX_DIGITAL_OUT_PIN 5
 #define GPS_RX_DIGITAL_OUT_PIN 6
@@ -26,7 +27,8 @@ typedef struct dateAjust DateAjust;
 DateAjust temp; // Estrcutura definida anteriormente
 long startMillis;
 long secondsToFirstLocation = 0;
-#define DEBUG
+//#define DEBUG
+#define PROD
 
 float latitude = 0.0;
 float longitude = 0.0;
@@ -40,6 +42,10 @@ void setup()
   Serial.begin(BAUDSERIAL);
 #endif
 
+#ifdef PROD
+  rs232.begin(BAUDSERIAL);
+#endif
+
   // Serial1 es el GPS  
   Serial1.begin(BAUDARDUINO);
 
@@ -48,7 +54,7 @@ void setup()
   pinMode(GPS_RX_DIGITAL_OUT_PIN, INPUT);
   // Esto es para contabilizar cuanto se demora en hacer la conexin con el GPS
   startMillis = millis();
-  Serial.println("Iniciado Conexion con GPS");
+  rs232.println("Iniciado Conexion con GPS");
 }
 
 void loop()
@@ -223,7 +229,7 @@ void readLocation(){
     //
     // Los siguientes if verifican la validez de la informacion recibida por el GPS (A para valido, V para invalido)
     if (age == TinyGPS::GPS_INVALID_AGE || age > 5000)
-      Serial.println("No fix detected OR Warning: possible stale data!");
+      rs232.println("No fix detected OR Warning: possible stale data!");
     else{
       tramaValida = true;
       /*
@@ -254,15 +260,15 @@ void readLocation(){
       
       String hora = hh+":"+mm+":"+ss;
       String dia = dd+mes+(String)year;
-      Serial.print("PME=249/CR");
-      Serial.print("TOD="+hora+"/CR");
-      Serial.print("TOD="+dia+"/CR");
+      rs232.print("PME=249/CR");
+      rs232.print("TOD="+hora+"/CR");
+      rs232.print("TOD="+dia+"/CR");
     }
   }
 
   if (chars == 0){
     // Envia un aviso si es que no se esta recibiendo informacion
-    Serial.println("Check wiring");
+    rs232.println("Check wiring");
   }
   else if(secondsToFirstLocation == 0){
     // still working
