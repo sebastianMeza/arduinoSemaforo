@@ -2,7 +2,7 @@
 #include <SoftwareSerial.h>
 ///////////////////////////////////////////////////////////////////////////////////////
 TinyGPS gps;
-SoftwareSerial rs232(2, 3); // RX, TX
+SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
 //Variables de configuracion para el arduino mega y el gps shield
 #define GPS_TX_DIGITAL_OUT_PIN 5
 #define GPS_RX_DIGITAL_OUT_PIN 6
@@ -25,7 +25,6 @@ typedef struct dateAjust DateAjust;
 /////////////////////////////////////////////////////////////////////////////////////
 // Variables Globales
 DateAjust temp; // Estrcutura definida anteriormente
-long startMillis;
 long secondsToFirstLocation = 0;
 //#define DEBUG
 #define PROD
@@ -52,15 +51,14 @@ void setup()
   // Se configuran los pines que se comunican con el GPS
   pinMode(GPS_TX_DIGITAL_OUT_PIN, INPUT);
   pinMode(GPS_RX_DIGITAL_OUT_PIN, INPUT);
-  // Esto es para contabilizar cuanto se demora en hacer la conexin con el GPS
-  startMillis = millis();
-  rs232.println("Iniciado Conexion con GPS");
+
+  //rs232.println("Iniciado Conexion con GPS");
 }
 
 void loop()
 {
   readLocation();
-  delay(5000);
+  delay(30000);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,19 +196,8 @@ void readLocation(){
   
   if (newData)
   {
-    /*
-    // Se contabiliza cuando demora en hacer la contexin
-    if(secondsToFirstLocation == 0){
-      secondsToFirstLocation = (millis() - startMillis) / 1000;
-      Serial.print("Acquired in:");
-      Serial.print(secondsToFirstLocation);
-      Serial.println("s");
-    }
-    */
     //// Obtencion de los datos del GPS
     unsigned long age;
-    gps.f_get_position(&latitude, &longitude, &age); // Posicion
-    //
     int year;
     byte month, day, hour, minute, second, hundredths;
     gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);// Fecha y hora
@@ -220,38 +207,12 @@ void readLocation(){
     day=temp.day;
     year=temp.year;
     hour=temp.hour;
-    //
-    char sz[32];
-    sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d ",
-    month, day, year, hour, minute, second);
-    latitude == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : latitude;
-    longitude == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : longitude;
-    //
     // Los siguientes if verifican la validez de la informacion recibida por el GPS (A para valido, V para invalido)
-    if (age == TinyGPS::GPS_INVALID_AGE || age > 5000)
-      rs232.println("No fix detected OR Warning: possible stale data!");
+    if (age == TinyGPS::GPS_INVALID_AGE || age > 5000){
+      //rs232.println("No fix detected OR Warning: possible stale data!");
+    }
     else{
-      tramaValida = true;
-      /*
-      Serial.println("Data is current.");
-      Serial.print("Location: ");
-      Serial.print(latitude, 6);
-      Serial.print(" , ");
-      Serial.print(longitude, 6);
-      Serial.println("");
-      Serial.print(sz);
-      Serial.println("");*/
-      //INSTRUCCIONES
-      // El controlador envia un prompt para que verifique la conexion.
-      // prompt:
-      // <Siemens
-      // <
-      // <
-      // Luego de eso se envian los comandos, por el puerto serial.
-      // PME=249/CR
-      // TOD=DDMMAA/CR
-      // TOD=HH:MM:SS/CR
-      
+      tramaValida = true;    
       String dd = formatNumber((int)day);
       String hh = formatNumber((int)hour);
       String mm = formatNumber((int)minute);
@@ -260,15 +221,15 @@ void readLocation(){
       
       String hora = hh+":"+mm+":"+ss;
       String dia = dd+mes+(String)year;
-      rs232.print("PME=249/CR");
-      rs232.print("TOD="+hora+"/CR");
-      rs232.print("TOD="+dia+"/CR");
+      rs232.println("PME=249");
+      rs232.println("TOD="+hora);
+      rs232.println("TOD="+dia);
     }
   }
 
   if (chars == 0){
     // Envia un aviso si es que no se esta recibiendo informacion
-    rs232.println("Check wiring");
+    //rs232.println("Check wiring");
   }
   else if(secondsToFirstLocation == 0){
     // still working
