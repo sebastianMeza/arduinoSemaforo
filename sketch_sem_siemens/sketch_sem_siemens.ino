@@ -249,9 +249,9 @@ void readLocation(){
       year_new.remove(0,2);
       String hora = hh+":"+mm+":"+ss;
       String dia = dd+mes+year_new;
-      //rs232.println("PME\n249\nxxc\nPME=249\nTOD="+hora+"\nTOD="+dia);
+      //rs232.println(""PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia);
       gps_global_prev = gps_global_new;
-      gps_global_new = "PME\n249\nxxc\nPME=249\nTOD="+hora+"\nTOD="+dia;
+      gps_global_new = "PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia;
     }
   }
 
