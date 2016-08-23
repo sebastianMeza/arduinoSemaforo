@@ -1,5 +1,6 @@
 #include "TinyGPS.h"
 #include <SoftwareSerial.h>
+#include <TimerOne.h>
 ///////////////////////////////////////////////////////////////////////////////////////
 TinyGPS gps;
 SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
@@ -10,7 +11,7 @@ SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
 #define UTC_OFFSET -4 
 // Variables 
 #define BAUDARDUINO 9600
-#define BAUDSERIAL 19200
+#define BAUDSERIAL 1200
 ///////////////////////////////////////////////////////////////////////////////////////
 // Estructura de datos que almacena los ajustes al reloj mundial, deacuerdo a Chile
 struct dateAjust
@@ -31,6 +32,10 @@ long secondsToFirstLocation = 0;
 
 float latitude = 0.0;
 float longitude = 0.0;
+
+String gps_global_prev = "null";
+String gps_global_new = "null";
+int count = 0;
 //////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 // Funciones
@@ -47,10 +52,14 @@ void setup()
 
   // Serial1 es el GPS  
   Serial1.begin(BAUDARDUINO);
+  Serial.begin(BAUDSERIAL);
 
   // Se configuran los pines que se comunican con el GPS
   pinMode(GPS_TX_DIGITAL_OUT_PIN, INPUT);
-  pinMode(GPS_RX_DIGITAL_OUT_PIN, INPUT);
+  pinMode(GPS_RX_DIGITAL_OUT_PIN, OUTPUT);
+
+  Timer1.initialize(5000000);         // Dispara cada 5 seg
+  Timer1.attachInterrupt(interruption); // Activa la interrupcion y la asocia a interruption
 
   //rs232.println("Iniciado Conexion con GPS");
 }
@@ -58,10 +67,28 @@ void setup()
 void loop()
 {
   readLocation();
-  delay(30000);
+  //delay(5000);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+
+void interruption(){
+  if(count>=5){
+    if(gps_global_new!="null"){
+      rs232.println(gps_global_new);
+      }
+    else{
+      Serial.println("No GPS Signal");
+      }
+    count=0;
+    }
+  else{
+    //rs232.print((String)count+", ");
+    count++;
+    }
+  }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 // Funcion que contabiliza los dias que tiene el mes y año que se le indica 
 int numbersOfDays(byte month, int year){  
   int numberOfDays;  
@@ -133,7 +160,7 @@ String formatMonth(int num){
   String mes;
   switch (num) {
       case 1:
-        mes = "ENE";
+        mes = "JAN";
         break;
       case 2:
         mes = "FEB";
@@ -154,7 +181,7 @@ String formatMonth(int num){
         mes = "JUL";
         break;
       case 8:
-        mes = "AGO";
+        mes = "AUG";
         break;
       case 9:
         mes = "SEP";
@@ -218,12 +245,13 @@ void readLocation(){
       String mm = formatNumber((int)minute);
       String ss = formatNumber((int)second);
       String mes = formatMonth((int)month);
-      
+      String year_new = (String)year;
+      year_new.remove(0,2);
       String hora = hh+":"+mm+":"+ss;
-      String dia = dd+mes+(String)year;
-      rs232.println("PME=249");
-      rs232.println("TOD="+hora);
-      rs232.println("TOD="+dia);
+      String dia = dd+mes+year_new;
+      //rs232.println("PME\n249\nxxc\nPME=249\nTOD="+hora+"\nTOD="+dia);
+      gps_global_prev = gps_global_new;
+      gps_global_new = "PME\n249\nxxc\nPME=249\nTOD="+hora+"\nTOD="+dia;
     }
   }
 
