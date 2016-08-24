@@ -12,6 +12,7 @@ SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
 // Variables 
 #define BAUDARDUINO 9600
 #define BAUDSERIAL 1200
+#define FRECUENCIA_INTERRUPCION 30 //debe ser un numero multiplo de 5, siempre mayor o igual a 5
 ///////////////////////////////////////////////////////////////////////////////////////
 // Estructura de datos que almacena los ajustes al reloj mundial, deacuerdo a Chile
 struct dateAjust
@@ -33,8 +34,9 @@ long secondsToFirstLocation = 0;
 float latitude = 0.0;
 float longitude = 0.0;
 
-String gps_global_prev = "null";
+String gps_global_prev = "null1";
 String gps_global_new = "null";
+int intervalo = FRECUENCIA_INTERRUPCION/5-1;
 int count = 0;
 //////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +75,14 @@ void loop()
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 void interruption(){
-  if(count>=5){
+  //se comprueba que el gps este entregando datos nuevos
+  if(gps_global_prev.equals(gps_global_new)){
+      gps_global_new = "null";
+      //Serial.println("No -GPS Signal.");    
+    }
+  gps_global_prev = gps_global_new;
+  //en caso que se cumpla el intervalo definido por el usuario
+  if(count>=intervalo){
     if(gps_global_new!="null"){
       rs232.println(gps_global_new);
       }
@@ -204,6 +213,7 @@ String formatMonth(int num){
 void readLocation(){
   bool newData = false, conectado = false,  tramaValida = false;
   unsigned long chars = 0;
+//  int contador = 0;
   unsigned short sentences, failed;
   // Se hace un total de 1000 lecturas desde el GPS
   // comentar el ciclo for y 
@@ -220,7 +230,8 @@ void readLocation(){
       }
     }
   }
-  
+//  Serial.println("-Sali"); 
+//  contador = 0;
   if (newData)
   {
     //// Obtencion de los datos del GPS
@@ -249,11 +260,12 @@ void readLocation(){
       year_new.remove(0,2);
       String hora = hh+":"+mm+":"+ss;
       String dia = dd+mes+year_new;
-      //rs232.println(""PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia);
-      gps_global_prev = gps_global_new;
-      gps_global_new = "PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia;
+      //rs232.println(""PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia+"\n\r");
+      gps_global_new = "PME\n\r249\n\rxxc\n\rPME=249\n\rTOD="+hora+"\n\rTOD="+dia+"\n\r";
+      //Serial.println("Es valido");
     }
   }
+
 
   if (chars == 0){
     // Envia un aviso si es que no se esta recibiendo informacion
