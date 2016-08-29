@@ -1,6 +1,7 @@
 #include "TinyGPS.h"
 #include <SoftwareSerial.h>
 #include <TimerOne.h>
+#include <avr/wdt.h>
 ///////////////////////////////////////////////////////////////////////////////////////
 TinyGPS gps;
 SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
@@ -13,6 +14,8 @@ SoftwareSerial rs232(2, 3); // RX, TX // Pines de conexion rs232
 #define BAUDARDUINO 9600
 #define BAUDSERIAL 1200
 #define FRECUENCIA_INTERRUPCION 30 //debe ser un numero multiplo de 5, siempre mayor o igual a 5
+// Se define la funcion reset
+#define RESTART asm("jmp 0x0000")
 ///////////////////////////////////////////////////////////////////////////////////////
 // Estructura de datos que almacena los ajustes al reloj mundial, deacuerdo a Chile
 struct dateAjust
@@ -38,22 +41,16 @@ String gps_global_prev = "null1";
 String gps_global_new = "null";
 int intervalo = FRECUENCIA_INTERRUPCION/5-1;
 int count = 0;
+int count_for_reset = 0;
 //////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 // Funciones
-void setup()
-{
-  // Aqui se define la salida hacia el puerto serial
-#ifdef DEBUG
-  Serial.begin(BAUDSERIAL);
-#endif
-
-#ifdef PROD
+void setup(){
+  //Se inicializan las variables de comunicación
   rs232.begin(BAUDSERIAL);
-#endif
-
   // Serial1 es el GPS  
   Serial1.begin(BAUDARDUINO);
+  //Serial destinada a debug
   Serial.begin(BAUDSERIAL);
 
   // Se configuran los pines que se comunican con el GPS
@@ -85,9 +82,17 @@ void interruption(){
   if(count>=intervalo){
     if(gps_global_new!="null"){
       rs232.println(gps_global_new);
+      count_for_reset=0;
       }
     else{
       Serial.println("No GPS Signal");
+      count_for_reset++;
+      }
+    if(count_for_reset>=6){
+      Serial.println("Arduino-Reset");
+      delay(5000);
+      //count_for_reset=0;
+      RESTART;
       }
     count=0;
     }
