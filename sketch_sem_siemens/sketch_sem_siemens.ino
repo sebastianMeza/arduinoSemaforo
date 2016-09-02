@@ -72,6 +72,10 @@ void loop()
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 void interruption(){
+      if(rs232){
+        rs232.println();
+      }
+      
   //se comprueba que el gps este entregando datos nuevos
   if(gps_global_prev.equals(gps_global_new)){
       gps_global_new = "null";
